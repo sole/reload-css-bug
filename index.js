@@ -2,6 +2,7 @@
 
 var fs = require('fs');
 var path = require('path');
+var findSimulators = require('node-firefox-find-simulators');
 var startSimulator = require('node-firefox-start-simulator');
 var connect = require('node-firefox-connect');
 var installApp = require('node-firefox-install-app');
@@ -16,7 +17,13 @@ var manifestContents = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 var cssPath = path.join(appPath, 'style.css');
 var cssContents = fs.readFileSync(cssPath, 'utf8');
 
-startSimulator().then(makeEverythingHappen);
+// Launch all of them. ALL. OF. THEM.
+findSimulators().then(function(results) {
+	results.forEach(function(simu) {
+		startSimulator({ version: simu.version })
+			.then(makeEverythingHappen);
+	});
+});
 
 function makeEverythingHappen(simulator) {
 
