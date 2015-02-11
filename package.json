@@ -1,7 +1,7 @@
 {
-  "name": "node-firefox-examples-install-packaged",
+  "name": "reload-css-bug",
   "version": "1.0.0",
-  "description": "Shows how to install a packaged app using node-firefox",
+  "description": "test case for a bug in reload-css",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
