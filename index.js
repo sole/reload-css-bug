@@ -21,17 +21,21 @@ var cssContents = fs.readFileSync(cssPath, 'utf8');
 findSimulators().then(function(results) {
 	results.forEach(function(simu) {
 		startSimulator({ version: simu.version })
-			.then(makeEverythingHappen);
+			.then(function(simulator) {
+				simulator.version = simu.version;
+				return makeEverythingHappen(simulator);
+			});
 	});
 });
 
 function makeEverythingHappen(simulator) {
 
 	var client;
+	var version = simulator.version;
 
 	return new Promise(function(resolve, reject) {
 		setTimeout(function() {
-			console.log('nao');
+			console.log(version, 'Connect now');
 			resolve(connect(simulator.port));
 		}, 1000);
 	})
@@ -46,13 +50,13 @@ function makeEverythingHappen(simulator) {
 
 	}, onError)
 	.then(function(apps) {
-		console.log('find apps', apps);
+		console.log(version, 'find apps', apps.length);
 		if(apps.length === 0) {
 			return installApp({
 				appPath: appPath,
 				client: client
 			}).then(function(res) {
-				console.log('was it installed?', res);
+				console.log(version, 'was it installed?', res);
 				return findApp({
 					manifest: manifestContents,
 					client: client
@@ -63,9 +67,9 @@ function makeEverythingHappen(simulator) {
 		}
 	}, onError)
 	.then(function(apps) {
-		console.log('and FINALLY', apps.length);
+		console.log(version, 'and FINALLY', apps.length);
 		if(apps.length === 0) {
-			throw(new Error('What IS going on?'));
+			throw(new Error(version + ': what IS going on?'));
 		}
 		var app = apps[0];
 		return launchApp({
@@ -76,19 +80,19 @@ function makeEverythingHappen(simulator) {
 		});
 	})
 	.then(function(app) {
-		console.log('launch app', app);
+		console.log(version, 'launch app', app.name);
 
 		client.getWebapps(function(err, actor) {
 			if(err) {
-				throw(new Error(err));
+				throw(new Error({ version: version, error: err }));
 			}
 			
 			actor.getApp(app.manifestURL, function(err, tab) {
 				if(err) {
-					throw(new Error(err));
+					throw(new Error({ version: version, error: err }));
 				}
 
-				startUpdatingStylesheets(tab);
+				updateStyleSheet(tab, version);
 
 			});
 
@@ -96,7 +100,7 @@ function makeEverythingHappen(simulator) {
 
 	})
 	.catch(function(horror) {
-		console.error('THIS IS TERRIBLE', horror);
+		console.error(version, 'THIS IS TERRIBLE', horror);
 	});
 }
 
@@ -104,20 +108,22 @@ function onError(agh) {
 	console.error('OH NO', agh);
 }
 
-function startUpdatingStylesheets(tab) {
+function updateStyleSheet(tab, version) {
+
+	console.log(version, 'updateStyleSheet / tab has StyleSheets?', !!tab.StyleSheets);
 
 	tab.StyleSheets.getStyleSheets(function(err, sheets) {
 		if(err) {
 			return onError(err);
 		}
 
+		console.log(version, '☑️   got stylesheets');
+
 		var firstSheet = sheets[0];
 
-		firstSheet.update('body { background: #f00; }');
-
-		/*setInterval(function() {
-			
-		}, 1000);*/
+		firstSheet.update('body { background: #f00; }', function(err, res) {
+			console.log(version, '✅  updated css =>', err, res);
+		});
 
 	});
 	
